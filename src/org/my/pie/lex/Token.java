@@ -13,4 +13,8 @@ public class Token {
 	public String toString() {
 		return text;
 	}
+
+	public int getType() {
+		return tag;
+	}
 }

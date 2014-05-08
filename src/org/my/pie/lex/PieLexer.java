@@ -54,9 +54,9 @@ public class PieLexer {
 		peek = text.charAt(cursor);
 	}
 
-	private void match(char c) throws PieException, PieEOFException {
+	private void match(char c) throws PieUnkownSymbolException, PieEOFException {
 		if (peek != c)
-			throw new PieException("lex error at line " + PieLexer.line
+			throw new PieUnkownSymbolException("lex error at line " + PieLexer.line
 					+ ", expected '" + String.valueOf(c) + "'"
 					+ ", but encountered '" + String.valueOf(peek) + "'");
 		consumeChar();
@@ -80,7 +80,7 @@ public class PieLexer {
 		return c - '0';
 	}
 
-	public Token nextToken() throws PieException {
+	public Token nextToken() throws PieUnkownSymbolException {
 		Token ret = null;
 		try {
 			while (peek == ' ' || peek == '\t' || peek == '\n') {
@@ -149,7 +149,7 @@ public class PieLexer {
 						base = 10 * base;
 						consumeChar();
 					}
-					ret = new Token(Tag.FLOAT, String.valueOf(h + l / base));
+					ret = new Token(Tag.FLOAT, String.valueOf((h + l) / base));
 				}
 				return ret;
 			} else if (isLetter(peek)) {
@@ -166,7 +166,7 @@ public class PieLexer {
 				return ret;
 			}
 			
-			throw new PieException("lex error at line " + PieLexer.line
+			throw new PieUnkownSymbolException("lex error at line " + PieLexer.line
 					+ ", unkown symbol \'" + String.valueOf(peek) + "\'");
 		} catch (PieEOFException e) {
 			if (ret == null)
