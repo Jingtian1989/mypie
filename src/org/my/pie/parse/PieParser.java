@@ -125,8 +125,13 @@ public class PieParser {
 		seek(index);
 		return true;
 	}
+	
+	public void parse() throws PieRecognitionException, PieMissmatchedException {
+		PieAST root = program();
+		interpreter.setCodeAST(root);
+	}
 
-	public PieAST program() throws PieRecognitionException,
+	private PieAST program() throws PieRecognitionException,
 			PieMissmatchedException {
 		PieAST root = new PieAST(new Token(Tag.BLOCK, "block"));
 		// program : (functionDefinition | statement )+ EOF => ^(BLOCK statement+)
@@ -329,6 +334,7 @@ public class PieParser {
 		} else if (lookAhead(1) == Tag.PRINT) {
 			// 'print' expr NL => ^('print' expr)
 			statement = new PieAST(lexer.PRINT);
+			match(Tag.PRINT);
 			PieAST expr = _expr();
 			match(Tag.NL);
 			statement.addChild(expr);
@@ -352,6 +358,7 @@ public class PieParser {
 		} else if (lookAhead(1) == Tag.WHILE) {
 			// 'while' expr slist => ^('while' expr slist)
 			statement = new PieAST(lexer.WHILE);
+			match(Tag.WHILE);
 			PieAST expr = _expr();
 			PieAST slist = _slist();
 			statement.addChild(expr);

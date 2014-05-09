@@ -16,7 +16,7 @@ public class Test1 {
 		PieInterpreter interpreter = new PieInterpreter();
 		PieParser parser = new PieParser(lexer, interpreter);
 		try {
-			PieAST root = parser.program();
+			parser.parse();
 		} catch (PieRecognitionException | PieMissmatchedException e) {
 			e.printStackTrace();
 		}
