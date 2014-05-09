@@ -96,7 +96,6 @@ I abandoned the automation tool of antlr, implementing it by the backtrack-LL(k)
 		|	'.' INT+
 		;
 
-	WS  :   (' '|'\t') {$channel=HIDDEN;} ;
 
 
 
