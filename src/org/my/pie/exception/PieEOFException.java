@@ -1,4 +1,4 @@
-package org.my.pie.lex;
+package org.my.pie.exception;
 
 public class PieEOFException extends Exception {
 	

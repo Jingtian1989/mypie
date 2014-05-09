@@ -2,6 +2,9 @@ package org.my.pie.lex;
 
 import java.util.HashMap;
 
+import org.my.pie.exception.PieEOFException;
+import org.my.pie.exception.PieMissmatchedException;
+
 public class PieLexer {
 
 	public static final Token IF = new Token(Tag.IF, "if");
@@ -20,6 +23,7 @@ public class PieLexer {
 	public static final Token NEW = new Token(Tag.NEW, "new");
 
 	public static final Token EOF = new Token(Tag.EOF, "EOF");
+	public static final Token NL = new Token(Tag.NL, "NL");
 
 	public static int line = 0;
 
@@ -54,10 +58,10 @@ public class PieLexer {
 		peek = text.charAt(cursor);
 	}
 
-	private void match(char c) throws PieUnkownSymbolException, PieEOFException {
+	private void match(char c) throws PieMissmatchedException, PieEOFException {
 		if (peek != c)
-			throw new PieUnkownSymbolException("lex error at line " + PieLexer.line
-					+ ", expected '" + String.valueOf(c) + "'"
+			throw new PieMissmatchedException("lex error at line "
+					+ PieLexer.line + ", expected '" + String.valueOf(c) + "'"
 					+ ", but encountered '" + String.valueOf(peek) + "'");
 		consumeChar();
 	}
@@ -80,16 +84,18 @@ public class PieLexer {
 		return c - '0';
 	}
 
-	public Token nextToken() throws PieUnkownSymbolException {
+	public Token nextToken() throws PieMissmatchedException {
 		Token ret = null;
 		try {
-			while (peek == ' ' || peek == '\t' || peek == '\n') {
-				if (peek == '\n') {
-					PieLexer.line++;
-				}
+			while (peek == ' ' || peek == '\t') {
 				consumeChar();
 			}
-			if (peek == '+') {
+			if (peek == '\n') {
+				ret = PieLexer.NL;
+				consumeChar();
+				PieLexer.line++;
+				return ret;
+			} else if (peek == '+') {
 				consumeChar();
 				ret = PieLexer.ADD;
 				return ret;
@@ -165,9 +171,11 @@ public class PieLexer {
 				}
 				return ret;
 			}
-			
-			throw new PieUnkownSymbolException("lex error at line " + PieLexer.line
-					+ ", unkown symbol \'" + String.valueOf(peek) + "\'");
+
+			ret = new Token(peek, String.valueOf(peek));
+			consumeChar();
+			return ret;
+
 		} catch (PieEOFException e) {
 			if (ret == null)
 				return PieLexer.EOF;

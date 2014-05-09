@@ -17,4 +17,8 @@ public class Token {
 	public int getType() {
 		return tag;
 	}
+	
+	public String getValue() {
+		return text;
+	}
 }

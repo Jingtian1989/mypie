@@ -1,4 +1,4 @@
-package org.my.pie.parse;
+package org.my.pie.exception;
 
 public class PieMissmatchedException extends Exception {
 

@@ -27,4 +27,6 @@ public class Tag {
 	public static final int CHAR = 21;
 	public static final int STRING = 22;
 	public static final int ID = 23;
+	
+	public static final int NL = 24;
 }
