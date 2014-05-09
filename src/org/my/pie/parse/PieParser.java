@@ -32,6 +32,8 @@ public class PieParser {
 	Map<Integer, Integer> structDefinitionMemo = new HashMap<Integer, Integer>();
 	Map<Integer, Integer> vardefMemo = new HashMap<Integer, Integer>();
 	Map<Integer, Integer> qidMemo = new HashMap<Integer, Integer>();
+	Map<Integer, Integer> callMemo = new HashMap<Integer, Integer>();
+	private Map<Integer, Integer> exprMemo = new HashMap<Integer, Integer>();
 
 	public PieParser(PieLexer lexer, PieInterpreter interpreter) {
 		this.lexer = lexer;
@@ -384,11 +386,16 @@ public class PieParser {
 
 	private void _structDefinition() throws PieRecognitionException,
 			PieMissmatchedException {
+		// structDefinition
+		// : 'struct' name=ID '{' vardef (',' vardef)* '}' NL
+		// => // pass nothing to interpreter
+		//
+		Scope savedScope = currentScope;
 		match(Tag.STRUCT);
 		Token id = lookToken(1);
 		match(Tag.ID);
 		match('{');
-		Scope savedScope = currentScope;
+
 		if (!isSpeculating()) {
 			StructSymbol ss = new StructSymbol(id.getValue(), currentScope);
 			currentScope.define(ss);
@@ -437,6 +444,7 @@ public class PieParser {
 
 	private PieAST _qid() throws PieMissmatchedException,
 			PieRecognitionException {
+		// qid : ID ('.'^ ID)*
 		Token id = lookToken(1);
 		match(Tag.ID);
 		PieAST qid = new PieAST(id);
@@ -451,15 +459,131 @@ public class PieParser {
 
 	}
 
-	private PieAST _call() {
-		return null;
-	}
-
 	private boolean speculateCall() {
-		return false;
+		boolean success = true;
+		mark();
+		try {
+			call();
+		} catch (PieRecognitionException e) {
+			success = false;
+		}
+		release();
+		return success;
 	}
 
-	private PieAST _expr() {
+	private void call() throws PieRecognitionException {
+		boolean failed = false;
+		int startTokenIndex = index();
+		if (alreadyParsedRule(callMemo))
+			return;
+		try {
+			_call();
+		} catch (PieRecognitionException e) {
+			failed = true;
+			throw e;
+		} catch (PieMissmatchedException e) {
+			failed = true;
+			throw new PieRecognitionException();
+		} finally {
+			memorize(callMemo, startTokenIndex, failed);
+		}
+		return;
+	}
+
+	private PieAST _call() throws PieRecognitionException,
+			PieMissmatchedException {
+		// call : name=ID '(' (expr (',' expr )*)? ')' => ^(CALL ID expr*) ;
+		Token id = lookToken(1);
+		match(Tag.ID);
+		PieAST call = new PieAST(new Token(Tag.CALL, id.getValue()));
+		match('(');
+		if (speculateExpr()) {
+			PieAST expr = _expr();
+			call.addChild(expr);
+		}
+		while (lookAhead(1) == ',') {
+			match(',');
+			PieAST expr = _expr();
+			call.addChild(expr);
+		}
+		match(')');
+		match(Tag.NL);
+		call.setScope(currentScope);
+		return call;
+	}
+
+	private boolean speculateExpr() {
+		boolean success = true;
+		mark();
+		try {
+			expr();
+		} catch (PieRecognitionException e) {
+			success = false;
+		}
+		release();
+		return success;
+	}
+
+	private void expr() throws PieRecognitionException {
+		boolean failed = false;
+		int startTokenIndex = index();
+		if (alreadyParsedRule(exprMemo))
+			return;
+		try {
+			_expr();
+		} catch (PieMissmatchedException e) {
+			failed = false;
+			throw new PieRecognitionException();
+		} finally {
+			memorize(exprMemo, startTokenIndex, failed);
+		}
+		return;
+	}
+
+	private PieAST _expr() throws PieMissmatchedException {
+		// expr: addexpr (('=='|'<')^ addexpr)? ;
+		PieAST ret = _addExpr();
+		if (lookAhead(1) == Tag.EQ || lookAhead(1) == Tag.LT) {
+			PieAST root = new PieAST(lookToken(1));
+			consumeToken();
+			root.addChild(ret);
+			ret = _addExpr();
+			root.addChild(ret);
+			ret = root;
+		}
+		return ret;
+	}
+
+	private PieAST _addExpr() throws PieMissmatchedException {
+		// addexpr : mulexpr (('+'|'-')^ mulexpr)*
+		PieAST ret = _mulExpr();
+		while (lookAhead(1) == Tag.ADD || lookAhead(1) == Tag.SUB) {
+			PieAST root = new PieAST(lookToken(1));
+			consumeToken();
+			root.addChild(ret);
+			ret = _mulExpr();
+			root.addChild(ret);
+			ret = root;
+		}
+		return ret;
+	}
+
+	private PieAST _mulExpr() throws PieMissmatchedException {
+		// mulexpr : atom ('*'^ atom)*
+		PieAST ret = _atom();
+		while (lookAhead(1) == Tag.MUL) {
+			PieAST root = new PieAST(lookToken(1));
+			consumeToken();
+			root.addChild(ret);
+			ret = _atom();
+			root.addChild(ret);
+			ret = root;
+		}
+		return ret;
+	}
+
+	private PieAST _atom() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 
