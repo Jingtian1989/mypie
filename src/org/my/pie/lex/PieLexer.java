@@ -21,18 +21,17 @@ public class PieLexer {
 	public static final Token STRUCT = new Token(Tag.STRUCT, "struct");
 	public static final Token DOT = new Token(Tag.DOT, ".");
 	public static final Token NEW = new Token(Tag.NEW, "new");
-
 	public static final Token EOF = new Token(Tag.EOF, "EOF");
 	public static final Token NL = new Token(Tag.NL, "NL");
 
 	public static int line = 0;
 
-	public HashMap<String, Token> words = new HashMap<String, Token>();
+	public String text;
 	public int cursor = -1;
 	public int size = 0;
 	public char peek = ' ';
-	public String text;
-
+	public HashMap<String, Token> words = new HashMap<String, Token>();
+	
 	public PieLexer(String input) {
 		this.text = input;
 		this.size = input.length();
@@ -87,7 +86,7 @@ public class PieLexer {
 	public Token nextToken() throws PieMissmatchedException {
 		Token ret = null;
 		try {
-			while (peek == ' ' || peek == '\t') {
+			while (peek == ' ' || peek == '\t' || peek == '\r') {
 				consumeChar();
 			}
 			if (peek == '\n') {

@@ -5,35 +5,37 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.my.pie.exception.PieMissmatchedException;
-import org.my.pie.exception.PiePreviousParseFailedException;
-import org.my.pie.exception.PieRecognitionException;
-import org.my.pie.interpreter.PieInterpreter;
-import org.my.pie.lex.PieLexer;
 import org.my.pie.lex.Tag;
 import org.my.pie.lex.Token;
-import org.my.pie.scope.LocalScope;
 import org.my.pie.scope.Scope;
-import org.my.pie.symbol.FunctionSymbol;
+import org.my.pie.scope.LocalScope;
+import org.my.pie.lex.PieLexer;
 import org.my.pie.symbol.StructSymbol;
+import org.my.pie.symbol.FunctionSymbol;
+import org.my.pie.symbol.VariableSymbol;
+import org.my.pie.interpreter.PieInterpreter;
+import org.my.pie.exception.PieMissmatchedException;
+import org.my.pie.exception.PieRecognitionException;
+import org.my.pie.exception.PiePreviousParseFailedException;
 
 public class PieParser {
 
-	public PieLexer lexer;
-	public List<Token> lookahead = new LinkedList<Token>();
-	public List<Integer> markers = new LinkedList<Integer>();
-	public int p = 0;
+	private int p = 0;
+	private PieLexer lexer;
+	private Scope currentScope;
+	private PieInterpreter interpreter;
+	private List<Token> lookahead = new LinkedList<Token>();
+	private List<Integer> markers = new LinkedList<Integer>();
+	
 
-	public PieInterpreter interpreter;
-	public Scope currentScope;
-
-	Map<Integer, Integer> statementMemo = new HashMap<Integer, Integer>();
-	Map<Integer, Integer> functionDefinitionMemo = new HashMap<Integer, Integer>();
-	Map<Integer, Integer> structDefinitionMemo = new HashMap<Integer, Integer>();
-	Map<Integer, Integer> vardefMemo = new HashMap<Integer, Integer>();
-	Map<Integer, Integer> qidMemo = new HashMap<Integer, Integer>();
-	Map<Integer, Integer> callMemo = new HashMap<Integer, Integer>();
+	private Map<Integer, Integer> statementMemo = new HashMap<Integer, Integer>();
+	private Map<Integer, Integer> functionDefinitionMemo = new HashMap<Integer, Integer>();
+	private Map<Integer, Integer> structDefinitionMemo = new HashMap<Integer, Integer>();
+	private Map<Integer, Integer> vardefMemo = new HashMap<Integer, Integer>();
+	private Map<Integer, Integer> qidMemo = new HashMap<Integer, Integer>();
+	private Map<Integer, Integer> callMemo = new HashMap<Integer, Integer>();
 	private Map<Integer, Integer> exprMemo = new HashMap<Integer, Integer>();
+	private Map<Integer, Integer> instanceMemo = new HashMap<Integer, Integer>();
 
 	public PieParser(PieLexer lexer, PieInterpreter interpreter) {
 		this.lexer = lexer;
@@ -45,7 +47,7 @@ public class PieParser {
 		return p;
 	}
 
-	public void match(int type) throws PieMissmatchedException {
+	private void match(int type) throws PieMissmatchedException {
 		if (lookAhead(1) == type) {
 			consumeToken();
 		} else {
@@ -65,12 +67,12 @@ public class PieParser {
 		syncTokens(1);
 	}
 
-	public int mark() {
+	private int mark() {
 		markers.add(p);
 		return p;
 	}
 
-	public void release() {
+	private void release() {
 		int marker = markers.get(markers.size() - 1);
 		markers.remove(markers.size() - 1);
 		seek(marker);
@@ -84,23 +86,23 @@ public class PieParser {
 		return markers.size() > 0;
 	}
 
-	public int lookAhead(int i) throws PieMissmatchedException {
+	private int lookAhead(int i) throws PieMissmatchedException {
 		return lookToken(i).getType();
 	}
 
-	public Token lookToken(int i) throws PieMissmatchedException {
+	private Token lookToken(int i) throws PieMissmatchedException {
 		syncTokens(i);
 		return lookahead.get(p + i - 1);
 	}
 
-	public void syncTokens(int i) throws PieMissmatchedException {
+	private void syncTokens(int i) throws PieMissmatchedException {
 		if (p + i - 1 > (lookahead.size() - 1)) {
 			int n = (p + i - 1) - (lookahead.size() - 1);
 			fillTokens(n);
 		}
 	}
 
-	public void fillTokens(int n) throws PieMissmatchedException {
+	private void fillTokens(int n) throws PieMissmatchedException {
 		for (int i = 0; i < n; i++) {
 			lookahead.add(lexer.nextToken());
 		}
@@ -127,8 +129,7 @@ public class PieParser {
 	public PieAST program() throws PieRecognitionException,
 			PieMissmatchedException {
 		PieAST root = new PieAST(new Token(Tag.BLOCK, "block"));
-		// program : (functionDefinition | statement )+ EOF => ^(BLOCK
-		// statement+)
+		// program : (functionDefinition | statement )+ EOF => ^(BLOCK statement+)
 		do {
 			if (speculateFunctionDefinition()) {
 				_functionDefiniton();
@@ -137,6 +138,7 @@ public class PieParser {
 				root.addChild(statement);
 			}
 		} while (speculateFunctionDefinition() || speculateStatement());
+		match(Tag.EOF);
 		return root;
 	}
 
@@ -239,7 +241,12 @@ public class PieParser {
 
 	private void _vardef() throws PieRecognitionException,
 			PieMissmatchedException {
-
+		Token id = lookToken(1);
+		match(Tag.ID);
+		if (!isSpeculating()) {
+			VariableSymbol vs = new VariableSymbol(id.getValue());
+			currentScope.define(vs);
+		}
 	}
 
 	private PieAST _slist() throws PieMissmatchedException,
@@ -310,6 +317,7 @@ public class PieParser {
 			match(Tag.NL);
 			statement.addChild(qid);
 			statement.addChild(expr);
+			return statement;
 		} else if (lookAhead(1) == Tag.RETURN) {
 			// 'return' expr NL => ^('return' expr)
 			statement = new PieAST(lexer.NL);
@@ -317,12 +325,14 @@ public class PieParser {
 			PieAST expr = _expr();
 			match(Tag.NL);
 			statement.addChild(expr);
+			return statement;
 		} else if (lookAhead(1) == Tag.PRINT) {
 			// 'print' expr NL => ^('print' expr)
 			statement = new PieAST(lexer.PRINT);
 			PieAST expr = _expr();
 			match(Tag.NL);
 			statement.addChild(expr);
+			return statement;
 		} else if (lookAhead(1) == Tag.IF) {
 			// 'if' expr c=slist ('else' el=slist)? => ^('if' expr $c %el?)
 			statement = new PieAST(lexer.IF);
@@ -338,6 +348,7 @@ public class PieParser {
 			if (el != null) {
 				statement.addChild(el);
 			}
+			return statement;
 		} else if (lookAhead(1) == Tag.WHILE) {
 			// 'while' expr slist => ^('while' expr slist)
 			statement = new PieAST(lexer.WHILE);
@@ -345,12 +356,17 @@ public class PieParser {
 			PieAST slist = _slist();
 			statement.addChild(expr);
 			statement.addChild(slist);
+			return statement;
 		} else if (speculateCall()) {
 			// call NL => call
 			statement = _call();
 			match(Tag.NL);
+			return statement;
+		} else if (lookAhead(1) == Tag.NL){
+			match(Tag.NL);
+			return statement;
 		}
-		return statement;
+		throw new PieRecognitionException();
 	}
 
 	private boolean speculateStructDefinition() {
@@ -436,6 +452,7 @@ public class PieParser {
 			throw e;
 		} catch (PieMissmatchedException e) {
 			failed = true;
+			throw new PieRecognitionException();
 		} finally {
 			memorize(qidMemo, startTokenIndex, failed);
 		}
@@ -540,7 +557,8 @@ public class PieParser {
 		return;
 	}
 
-	private PieAST _expr() throws PieMissmatchedException {
+	private PieAST _expr() throws PieMissmatchedException,
+			PieRecognitionException {
 		// expr: addexpr (('=='|'<')^ addexpr)? ;
 		PieAST ret = _addExpr();
 		if (lookAhead(1) == Tag.EQ || lookAhead(1) == Tag.LT) {
@@ -554,7 +572,8 @@ public class PieParser {
 		return ret;
 	}
 
-	private PieAST _addExpr() throws PieMissmatchedException {
+	private PieAST _addExpr() throws PieMissmatchedException,
+			PieRecognitionException {
 		// addexpr : mulexpr (('+'|'-')^ mulexpr)*
 		PieAST ret = _mulExpr();
 		while (lookAhead(1) == Tag.ADD || lookAhead(1) == Tag.SUB) {
@@ -568,7 +587,8 @@ public class PieParser {
 		return ret;
 	}
 
-	private PieAST _mulExpr() throws PieMissmatchedException {
+	private PieAST _mulExpr() throws PieMissmatchedException,
+			PieRecognitionException {
 		// mulexpr : atom ('*'^ atom)*
 		PieAST ret = _atom();
 		while (lookAhead(1) == Tag.MUL) {
@@ -582,9 +602,72 @@ public class PieParser {
 		return ret;
 	}
 
-	private PieAST _atom() {
-		// TODO Auto-generated method stub
-		return null;
+	private PieAST _atom() throws PieMissmatchedException,
+			PieRecognitionException {
+
+		PieAST ret = new PieAST(lookToken(1));
+		// atom : qid
+		if (speculateQid()) {
+			return _qid();
+		} else if (speculateCall()) {
+			// call
+			return _call();
+		} else if (speculateInstance()) {
+			// instance
+			return _instance();
+		} else if (lookAhead(1) == '(') {
+			// '(' expr ')' => expr
+			match('(');
+			ret = _expr();
+			match(')');
+			return ret;
+		}
+		// INT | CHAR | FLOAT | STRING
+		consumeToken();
+		return ret;
+	}
+
+	private boolean speculateInstance() {
+		boolean success = true;
+		mark();
+		try {
+			instance();
+		} catch (PieRecognitionException e) {
+			success = false;
+		}
+		release();
+		return success;
+	}
+
+	private void instance() throws PieRecognitionException {
+		boolean failed = false;
+		int startTokenIndex = index();
+		if (alreadyParsedRule(instanceMemo))
+			return;
+		try {
+			_instance();
+		} catch (PieRecognitionException e) {
+			failed = true;
+			throw e;
+		} catch (PieMissmatchedException e) {
+			failed = true;
+			throw new PieRecognitionException();
+		} finally {
+			memorize(instanceMemo, startTokenIndex, failed);
+		}
+		return;
+	}
+
+	private PieAST _instance() throws PieRecognitionException,
+			PieMissmatchedException {
+		// instance : 'new' sname=ID => ^('new' ID)
+
+		match(Tag.NEW);
+		Token token = lookToken(1);
+		match(Tag.ID);
+		PieAST ret = new PieAST(new Token(Tag.NEW, token.getValue()));
+		ret.setScope(currentScope);
+		return ret;
 	}
 
 }

@@ -31,5 +31,8 @@ public class PieAST {
 	public Scope getScope() {
 		return scope;
 	}
+	public String toString() {
+		return token.toString();
+	}
 
 }

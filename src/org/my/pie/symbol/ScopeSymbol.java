@@ -6,7 +6,7 @@ import org.my.pie.scope.Scope;
 
 public abstract class ScopeSymbol extends Symbol implements Scope {
 
-	Scope enclosingScope;
+	private Scope enclosingScope;
 
 	public ScopeSymbol(String name, Scope enclosingScope) {
 		super(name);
