@@ -122,12 +122,11 @@ public class PieParser {
 		return true;
 	}
 
-	/*
-	 * program : (functionDefinition | statement )+ EOF => ^(BLOCK statement+)
-	 */
 	public PieAST program() throws PieRecognitionException,
 			PieMissmatchedException {
 		PieAST root = new PieAST(new Token(Tag.BLOCK, "block"));
+		// program : (functionDefinition | statement )+ EOF => ^(BLOCK
+		// statement+)
 		do {
 			if (speculateFunctionDefinition()) {
 				_functionDefiniton();
@@ -171,10 +170,6 @@ public class PieParser {
 		return;
 	}
 
-	/*
-	 * functionDefinition : 'def' ID '(' (vardef (',' vardef)* )? ')' slist =>
-	 * // pass nothing to interpreter
-	 */
 	private void _functionDefiniton() throws PieRecognitionException,
 			PieMissmatchedException {
 		match(Tag.DEF);
@@ -182,6 +177,8 @@ public class PieParser {
 		match(Tag.ID);
 		Scope savedScope = currentScope;
 		FunctionSymbol fs = null;
+		// functionDefinition : 'def' ID '(' (vardef (',' vardef)* )? ')' slist
+		// =>pass nothing to interpreter
 		if (!isSpeculating()) {
 			fs = new FunctionSymbol(id.getValue(), currentScope);
 			currentScope.define(fs);
@@ -243,13 +240,10 @@ public class PieParser {
 
 	}
 
-	/*
-	 * slist : ':' NL statement+ NL => ^(BLOCK statement+) | statement =>
-	 * ^(BLOCK statement)
-	 */
 	private PieAST _slist() throws PieMissmatchedException,
 			PieRecognitionException {
 		PieAST slist = new PieAST(new Token(Tag.BLOCK, "block"));
+		// slist : ':' NL statement+ NL => ^(BLOCK statement+)
 		if (lookAhead(1) == ':') {
 			match(':');
 			match(Tag.NL);
@@ -260,6 +254,7 @@ public class PieParser {
 			match(Tag.DOT);
 			match(Tag.NL);
 		} else {
+			// statement => ^(BLOCK statement)
 			PieAST statement = _statement();
 			slist.addChild(statement);
 		}
@@ -297,19 +292,15 @@ public class PieParser {
 		return;
 	}
 
-	/*
-	 * statement : structDefinition | qid '=' expr NL => ^('=' qid expr) |
-	 * 'return' expr NL => ^('return' expr) | 'print' expr NL => ^('print' expr)
-	 * | 'if' expr c=slist ('else' el=slist)? => ^('if' expr $c %el?) | 'while'
-	 * expr slist => ^('while' expr slist) | call NL => call | NL ->
-	 */
 	private PieAST _statement() throws PieRecognitionException,
 			PieMissmatchedException {
 		PieAST statement = null;
+		// statement : structDefinition
 		if (speculateStructDefinition()) {
 			statement = null;
 			_structDefinition();
 		} else if (speculateQid()) {
+			// qid '=' expr NL => ^('=' qid expr)
 			statement = new PieAST(lexer.ASSIGN);
 			PieAST qid = _qid();
 			match(Tag.ASSIGN);
@@ -318,17 +309,20 @@ public class PieParser {
 			statement.addChild(qid);
 			statement.addChild(expr);
 		} else if (lookAhead(1) == Tag.RETURN) {
+			// 'return' expr NL => ^('return' expr)
 			statement = new PieAST(lexer.NL);
 			match(Tag.RETURN);
 			PieAST expr = _expr();
 			match(Tag.NL);
 			statement.addChild(expr);
 		} else if (lookAhead(1) == Tag.PRINT) {
+			// 'print' expr NL => ^('print' expr)
 			statement = new PieAST(lexer.PRINT);
 			PieAST expr = _expr();
 			match(Tag.NL);
 			statement.addChild(expr);
 		} else if (lookAhead(1) == Tag.IF) {
+			// 'if' expr c=slist ('else' el=slist)? => ^('if' expr $c %el?)
 			statement = new PieAST(lexer.IF);
 			match(Tag.IF);
 			PieAST expr = _expr();
@@ -343,12 +337,14 @@ public class PieParser {
 				statement.addChild(el);
 			}
 		} else if (lookAhead(1) == Tag.WHILE) {
+			// 'while' expr slist => ^('while' expr slist)
 			statement = new PieAST(lexer.WHILE);
 			PieAST expr = _expr();
 			PieAST slist = _slist();
 			statement.addChild(expr);
 			statement.addChild(slist);
 		} else if (speculateCall()) {
+			// call NL => call
 			statement = _call();
 			match(Tag.NL);
 		}
