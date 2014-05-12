@@ -3,15 +3,16 @@ package org.my.pie.interpreter;
 import java.util.List;
 import java.util.Stack;
 
-import org.my.pie.exception.PieUnsupportedOperationException;
+
 import org.my.pie.lex.Tag;
 import org.my.pie.parse.PieAST;
-import org.my.pie.scope.GlobalScope;
 import org.my.pie.scope.Scope;
-import org.my.pie.symbol.FunctionSymbol;
-import org.my.pie.symbol.StructSymbol;
+import org.my.pie.scope.GlobalScope;
 import org.my.pie.symbol.Symbol;
+import org.my.pie.symbol.StructSymbol;
+import org.my.pie.symbol.FunctionSymbol;
 import org.my.pie.symbol.VariableSymbol;
+import org.my.pie.exception.PieUnsupportedOperationException;
 
 public class PieInterpreter {
 

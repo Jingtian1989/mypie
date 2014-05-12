@@ -1,6 +1,6 @@
 #	mypie
 
-pie is a demonstration in book TPDSL, it's a simple dynamically-typed language that smacks of Python.
+Pie is a demonstration in book TPDSL, it's a simple dynamically-typed language that smacks of Python.
 I abandoned using the automation tool antlr, implementing it using the backtrack-LL(k) by hand.
 
 
@@ -101,10 +101,22 @@ I abandoned using the automation tool antlr, implementing it using the backtrack
 
 
 ###	A Program Demo
-	x = 1
-	def f(y):
-		x = 2
-		y = 3
-		z = 4
+
+####	source code
+	def printn(n):
+		i = 0
+		while i < n:
+			print i
+			i = i + 1
+		.
 	.
-	f(5)
+	n = 5
+	printn(n)
+
+
+####	output
+	0
+	1
+	2
+	3
+	4
