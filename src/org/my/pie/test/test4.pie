@@ -1,0 +1,9 @@
+def printn(n):
+	i = 0
+	while i < n:
+		print i
+		i = i + 1
+	.
+.
+n = 10
+printn(n)

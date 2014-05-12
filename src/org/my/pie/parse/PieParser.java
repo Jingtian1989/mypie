@@ -314,7 +314,7 @@ public class PieParser {
 		// statement : structDefinition
 		if (speculateStructDefinition()) {
 			_structDefinition();
-		} else if (speculateQid()) {
+		} else if (speculateQidStatement()) {
 			// qid '=' expr NL => ^('=' qid expr)
 			statement = new PieAST(lexer.ASSIGN);
 			PieAST qid = _qid();
@@ -366,7 +366,7 @@ public class PieParser {
 			statement.addChild(expr);
 			statement.addChild(slist);
 			return statement;
-		} else if (speculateCall()) {
+		} else if (speculateCallStatement()) {
 			// call NL => call
 			statement = _call();
 			match(Tag.NL);
@@ -436,6 +436,24 @@ public class PieParser {
 		currentScope = savedScope;
 		return;
 	}
+	
+	private boolean speculateQidStatement() {
+		boolean success = true;
+		mark();
+		try {
+			qid();
+			match(Tag.ASSIGN);
+			expr();
+			match(Tag.NL);
+			
+		} catch(PieRecognitionException e) {
+			success = false;
+		} catch (PieMissmatchedException e) {
+			success = false;
+		} 
+		release();
+		return success;
+	}
 
 	private boolean speculateQid() {
 		boolean success = true;
@@ -486,6 +504,21 @@ public class PieParser {
 		}
 		return ret;
 
+	}
+	
+	private boolean speculateCallStatement() {
+		boolean success = true;
+		mark();
+		try {
+			call();
+			match(Tag.NL);
+		} catch(PieRecognitionException e) {
+			success = false;
+		} catch (PieMissmatchedException e) {
+			success = false;
+		}
+		release();
+		return success;
 	}
 
 	private boolean speculateCall() {

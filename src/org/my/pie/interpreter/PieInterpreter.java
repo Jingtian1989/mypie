@@ -197,9 +197,9 @@ public class PieInterpreter {
 	private void whileStat(PieAST ast) {
 		PieAST condStart = ast.getChild(0);
 		PieAST codeStart = ast.getChild(1);
-		Boolean cond = (Boolean) executeAST(ast);
+		Boolean cond = (Boolean) executeAST(condStart);
 		while (cond.booleanValue()) {
-			executeAST(condStart);
+			executeAST(codeStart);
 			cond = (Boolean) executeAST(condStart);
 		}
 	}

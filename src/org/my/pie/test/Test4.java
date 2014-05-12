@@ -6,11 +6,11 @@ import org.my.pie.interpreter.PieInterpreter;
 import org.my.pie.lex.PieLexer;
 import org.my.pie.parse.PieParser;
 
-public class Test3 {
+public class Test4 {
 
 	@SuppressWarnings("unused")
 	public static void main(String[] args) {
-		String text = Util.readFile("\\src\\org\\my\\pie\\test\\test3.pie");
+		String text = Util.readFile("\\src\\org\\my\\pie\\test\\test4.pie");
 		PieLexer lexer = new PieLexer(text);
 		PieInterpreter interpreter = new PieInterpreter();
 		PieParser parser = new PieParser(lexer, interpreter);
