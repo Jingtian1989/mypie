@@ -4,7 +4,6 @@ import org.my.pie.exception.PieMissmatchedException;
 import org.my.pie.exception.PieRecognitionException;
 import org.my.pie.interpreter.PieInterpreter;
 import org.my.pie.lex.PieLexer;
-import org.my.pie.parse.PieAST;
 import org.my.pie.parse.PieParser;
 
 public class Test1 {
@@ -17,6 +16,7 @@ public class Test1 {
 		PieParser parser = new PieParser(lexer, interpreter);
 		try {
 			parser.parse();
+			interpreter.execute();
 		} catch (PieRecognitionException | PieMissmatchedException e) {
 			e.printStackTrace();
 		}

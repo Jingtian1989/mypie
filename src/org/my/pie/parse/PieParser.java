@@ -140,7 +140,9 @@ public class PieParser {
 				_functionDefiniton();
 			} else if (speculateStatement()) {
 				PieAST statement = _statement();
-				root.addChild(statement);
+				if (statement != null) {
+					root.addChild(statement);
+				}
 			}
 		} while (speculateFunctionDefinition() || speculateStatement());
 		match(Tag.EOF);
@@ -311,7 +313,6 @@ public class PieParser {
 		PieAST statement = null;
 		// statement : structDefinition
 		if (speculateStructDefinition()) {
-			statement = null;
 			_structDefinition();
 		} else if (speculateQid()) {
 			// qid '=' expr NL => ^('=' qid expr)
@@ -325,7 +326,7 @@ public class PieParser {
 			return statement;
 		} else if (lookAhead(1) == Tag.RETURN) {
 			// 'return' expr NL => ^('return' expr)
-			statement = new PieAST(lexer.NL);
+			statement = new PieAST(lexer.RETURN);
 			match(Tag.RETURN);
 			PieAST expr = _expr();
 			match(Tag.NL);
@@ -344,13 +345,14 @@ public class PieParser {
 			statement = new PieAST(lexer.IF);
 			match(Tag.IF);
 			PieAST expr = _expr();
+			statement.addChild(expr);
 			PieAST c = _slist();
+			statement.addChild(c);
 			PieAST el = null;
 			if (lookToken(1).getValue().equals("else")) {
 				match(Tag.ID);
 				el = _slist();
 			}
-			statement.addChild(c);
 			if (el != null) {
 				statement.addChild(el);
 			}
@@ -534,7 +536,6 @@ public class PieParser {
 			call.addChild(expr);
 		}
 		match(')');
-		match(Tag.NL);
 		call.setScope(currentScope);
 		return call;
 	}
@@ -616,12 +617,13 @@ public class PieParser {
 			PieRecognitionException {
 
 		PieAST ret = new PieAST(lookToken(1));
-		// atom : qid
-		if (speculateQid()) {
-			return _qid();
-		} else if (speculateCall()) {
-			// call
+
+		//  atom : call
+		if (speculateCall()) {
 			return _call();
+		}//	qid
+		else if (speculateQid()) {
+			return _qid();
 		} else if (speculateInstance()) {
 			// instance
 			return _instance();

@@ -93,7 +93,7 @@ public class PieInterpreter {
 	private void block(PieAST ast) {
 		List<PieAST> slist = ast.getChildren();
 		for (PieAST x : slist) {
-			executeAST(ast);
+			executeAST(x);
 		}
 	}
 
@@ -175,7 +175,7 @@ public class PieInterpreter {
 
 	private void print(PieAST ast) {
 		PieAST expr = ast.getChild(0);
-		System.out.println(executeAST(ast));
+		System.out.println(executeAST(expr));
 	}
 
 	private void ifStat(PieAST ast) {
@@ -205,7 +205,7 @@ public class PieInterpreter {
 	}
 
 	private Object call(PieAST ast) {
-		String functionName = ast.getChild(0).getASTValue();
+		String functionName = ast.getASTValue();
 		FunctionSymbol functionSymbol = (FunctionSymbol) ast.getScope()
 				.resolve(functionName);
 		if (functionSymbol == null) {
@@ -213,8 +213,7 @@ public class PieInterpreter {
 		}
 		FunctionSpace functionSpace = new FunctionSpace(functionSymbol);
 
-		int argCount = ast.getChildCount() - 1;
-		if (functionSymbol.getFormalArgsCount() != argCount) {
+		if (functionSymbol.getFormalArgsCount() != ast.getChildCount()) {
 			error("function " + functionName + " argument list mismatch");
 			return null;
 		}
@@ -231,7 +230,7 @@ public class PieInterpreter {
 		try {
 			executeAST(functionSymbol.getBlockAST());
 		} catch (ReturnValue value) {
-			result = null;
+			result = value.getValue();
 		}
 		functionStack.pop();
 		return result;
