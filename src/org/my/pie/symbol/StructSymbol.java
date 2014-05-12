@@ -7,7 +7,7 @@ import org.my.pie.scope.Scope;
 
 public class StructSymbol extends ScopeSymbol implements Scope {
 
-	Map<String, Symbol> fields = new LinkedHashMap<String, Symbol>();
+	private Map<String, Symbol> fields = new LinkedHashMap<String, Symbol>();
 
 	public StructSymbol(String name, Scope enclosingScope) {
 		super(name, enclosingScope);

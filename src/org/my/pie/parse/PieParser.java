@@ -26,7 +26,6 @@ public class PieParser {
 	private PieInterpreter interpreter;
 	private List<Token> lookahead = new LinkedList<Token>();
 	private List<Integer> markers = new LinkedList<Integer>();
-	
 
 	private Map<Integer, Integer> statementMemo = new HashMap<Integer, Integer>();
 	private Map<Integer, Integer> functionDefinitionMemo = new HashMap<Integer, Integer>();
@@ -125,7 +124,7 @@ public class PieParser {
 		seek(index);
 		return true;
 	}
-	
+
 	public void parse() throws PieRecognitionException, PieMissmatchedException {
 		PieAST root = program();
 		interpreter.setCodeAST(root);
@@ -134,7 +133,8 @@ public class PieParser {
 	private PieAST program() throws PieRecognitionException,
 			PieMissmatchedException {
 		PieAST root = new PieAST(new Token(Tag.BLOCK, "block"));
-		// program : (functionDefinition | statement )+ EOF => ^(BLOCK statement+)
+		// program : (functionDefinition | statement )+ EOF => ^(BLOCK
+		// statement+)
 		do {
 			if (speculateFunctionDefinition()) {
 				_functionDefiniton();
@@ -369,7 +369,7 @@ public class PieParser {
 			statement = _call();
 			match(Tag.NL);
 			return statement;
-		} else if (lookAhead(1) == Tag.NL){
+		} else if (lookAhead(1) == Tag.NL) {
 			match(Tag.NL);
 			return statement;
 		}
@@ -471,15 +471,18 @@ public class PieParser {
 		// qid : ID ('.'^ ID)*
 		Token id = lookToken(1);
 		match(Tag.ID);
-		PieAST qid = new PieAST(id);
+		PieAST ret = new PieAST(id);
 		while (lookAhead(1) == Tag.DOT) {
 			match(Tag.DOT);
-			Token cid = lookToken(1);
+			Token token = lookToken(1);
 			match(Tag.ID);
-			PieAST cst = new PieAST(cid);
-			qid.addChild(cst);
+			PieAST root = new PieAST(lexer.DOT);
+			PieAST part = new PieAST(token);
+			root.addChild(ret);
+			root.addChild(part);
+			ret = root;
 		}
-		return qid;
+		return ret;
 
 	}
 

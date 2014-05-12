@@ -12,7 +12,7 @@ import org.my.pie.scope.Scope;
 public class PieInterpreter {
 
 	private GlobalScope globalScope = new GlobalScope();
-	private MemorySpace currentSpace = new MemorySpace("global");
+	private MemorySpace globalSpace = new MemorySpace("global");
 	private Stack<FunctionSpace> functionStack = new Stack<FunctionSpace>();
 	private PieAST codeAST;
 
@@ -104,17 +104,62 @@ public class PieInterpreter {
 		}
 		MemorySpace space = getSpaceWithSymbol(left.getASTValue());
 		if (space == null) {
-			space = currentSpace;
+			space = globalSpace;
 		}
 		space.put(left.getASTValue(), value);
 	}
 
+	private void fieldAssign(PieAST ast, Object value) {
+		PieAST obj = ast.getChild(0);
+		PieAST field = ast.getChild(1);
+
+		String fieldName = field.getASTValue();
+		Object objSpace = load(obj);
+
+		if (!(objSpace instanceof StructSpace)) {
+			error(obj.getASTValue() + " is not a symbol");
+			return;
+		}
+
+		StructSpace objSpace2 = (StructSpace) objSpace;
+		if (objSpace2.getStructSymbol().resolveMember(fieldName) == null) {
+			error(obj.getASTValue() + "has no field " + fieldName);
+			return;
+		}
+		objSpace2.put(fieldName, value);
+	}
+
 	private MemorySpace getSpaceWithSymbol(String astValue) {
+		if (functionStack.size() > 0
+				&& functionStack.peek().get(astValue) != null) {
+			return functionStack.peek();
+		}
+		if (globalSpace.get(astValue) != null)
+			return globalSpace;
 		return null;
 	}
 
-	private void fieldAssign(PieAST left, Object value) {
+	private Object load(PieAST ast) {
 
+		if (ast.getASTType() == Tag.DOT) {
+			return fieldLoad(ast);
+		}
+		MemorySpace space = getSpaceWithSymbol(ast.getASTValue());
+		if (space != null)
+			return space.get(ast.getASTValue());
+		error("no such variable " + ast.getASTValue());
+		return null;
+	}
+
+	private Object fieldLoad(PieAST ast) {
+		PieAST obj = ast.getChild(0);
+		PieAST field = ast.getChild(1);
+		String fieldName = field.getASTValue();
+		StructSpace structSpace = (StructSpace) load(obj);
+		if (structSpace.getStructSymbol().resolveMember(fieldName) == null) {
+			error(obj.getASTValue() + " has no field " + fieldName);
+		}
+		return structSpace.get(fieldName);
 	}
 
 	private void returnStat(PieAST ast) {
@@ -163,11 +208,6 @@ public class PieInterpreter {
 	}
 
 	private Object lt(PieAST ast) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	private Object load(PieAST ast) {
 		// TODO Auto-generated method stub
 		return null;
 	}
