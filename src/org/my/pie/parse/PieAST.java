@@ -36,6 +36,10 @@ public class PieAST {
 		children.add(t);
 	}
 
+	public int getChildCount() {
+		return children.size();
+	}
+
 	public void setScope(Scope scope) {
 		this.scope = scope;
 	}
